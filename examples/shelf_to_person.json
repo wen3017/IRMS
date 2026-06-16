@@ -1,0 +1,31 @@
+{
+  "scenario_type": "货架到人",
+  "robots": [
+    {
+      "type": "货架搬运机器人",
+      "capabilities": ["lift_shelf", "carry_shelf"],
+      "low_battery_threshold": 20.0,
+      "full_battery_threshold": 90.0
+    }
+  ],
+  "workstations": [
+    { "id": "WS-01", "type": "拣选站", "constraints": ["max_concurrent_tasks=1"] }
+  ],
+  "task_flow": [
+    { "name": "取货", "description": "机器人前往货架点位顶起货架" },
+    { "name": "搬运", "description": "机器人将货架搬运至拣选站" },
+    { "name": "拣选", "description": "拣选员在工作站完成拣选" },
+    { "name": "归位", "description": "机器人将货架搬回原点位" }
+  ],
+  "locations": [
+    { "id": "LOC-A1", "area": "存储区", "constraints": [] },
+    { "id": "LOC-WS1", "area": "拣选区", "constraints": [] }
+  ],
+  "battery": { "low_threshold": 20.0, "charge_trigger": "low_battery" },
+  "exceptions": [
+    { "name": "取货失败", "trigger": "pick_failed", "handling": "release_and_cancel" },
+    { "name": "机器人离线", "trigger": "robot_offline", "handling": "reassign_or_cancel" }
+  ],
+  "cancellation": { "allowed_states": ["created", "取货", "搬运"], "handling": "release_resources" },
+  "priority": { "levels": ["low", "normal", "high"], "preemption": false }
+}
