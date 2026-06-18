@@ -1,0 +1,291 @@
+{
+  "id": "SM-BASIC-TASK",
+  "name": "基础仓储任务状态机",
+  "description": "描述任务从创建、等待、调度、执行到完成，并包含失败、取消、阻塞与恢复分支。",
+  "initial_state_id": "S_INITIAL",
+  "version": "0.1.0",
+  "task_type_id": "TT-SHELF-TO-PERSON",
+  "task_flow_id": "FLOW-SHELF-TO-PERSON",
+  "metadata": {
+    "timeout_unit": "seconds",
+    "stage": "1.3"
+  },
+  "states": [
+    {
+      "id": "S_INITIAL",
+      "name": "任务创建",
+      "state_type": "INITIAL",
+      "description": "任务数据已经生成，等待进入业务校验或调度前置流程。",
+      "terminal": false,
+      "timeout": null,
+      "entry_actions": [],
+      "exit_actions": [],
+      "metadata": {
+        "need_confirmation": "正式状态码待确认"
+      }
+    },
+    {
+      "id": "S_WAITING",
+      "name": "等待分配",
+      "state_type": "WAITING",
+      "description": "任务满足创建条件，等待进入调度队列或分配机器人。",
+      "terminal": false,
+      "timeout": null,
+      "entry_actions": [
+        {
+          "action_type": "enqueue_task",
+          "parameters": {},
+          "description": "将任务放入待分配队列；具体队列规则待确认。"
+        }
+      ],
+      "exit_actions": [],
+      "metadata": {}
+    },
+    {
+      "id": "S_DISPATCHING",
+      "name": "调度中",
+      "state_type": "DISPATCHING",
+      "description": "筛选候选机器人并执行调度约束校验。",
+      "terminal": false,
+      "timeout": null,
+      "entry_actions": [],
+      "exit_actions": [],
+      "metadata": {}
+    },
+    {
+      "id": "S_EXECUTING",
+      "name": "执行中",
+      "state_type": "EXECUTING",
+      "description": "机器人已接收任务并执行标准业务步骤。",
+      "terminal": false,
+      "timeout": null,
+      "entry_actions": [],
+      "exit_actions": [],
+      "metadata": {}
+    },
+    {
+      "id": "S_BLOCKED",
+      "name": "阻塞中",
+      "state_type": "BLOCKED",
+      "description": "因资源、点位、工作站或交通条件暂时无法继续执行。",
+      "terminal": false,
+      "timeout": 600,
+      "entry_actions": [
+        {
+          "action_type": "record_blocked_reason",
+          "parameters": {},
+          "description": "记录阻塞原因；具体原因编码待确认。"
+        }
+      ],
+      "exit_actions": [],
+      "metadata": {}
+    },
+    {
+      "id": "S_COMPLETED",
+      "name": "已完成",
+      "state_type": "COMPLETED",
+      "description": "所有标准步骤执行成功，资源已释放或恢复。",
+      "terminal": true,
+      "timeout": null,
+      "entry_actions": [],
+      "exit_actions": [],
+      "metadata": {}
+    },
+    {
+      "id": "S_FAILED",
+      "name": "失败",
+      "state_type": "FAILED",
+      "description": "达到终止条件且无法继续自动执行。",
+      "terminal": true,
+      "timeout": null,
+      "entry_actions": [],
+      "exit_actions": [],
+      "metadata": {}
+    },
+    {
+      "id": "S_CANCELLED",
+      "name": "已取消",
+      "state_type": "CANCELLED",
+      "description": "取消处理完成，任务进入明确终态。",
+      "terminal": true,
+      "timeout": null,
+      "entry_actions": [],
+      "exit_actions": [],
+      "metadata": {}
+    }
+  ],
+  "transitions": [
+    {
+      "id": "T_INITIAL_WAITING",
+      "from_state": "S_INITIAL",
+      "to_state": "S_WAITING",
+      "trigger": "BUSINESS_EVENT",
+      "guard": {
+        "expression": "basic_info_valid",
+        "variables": {},
+        "description": "基础任务信息有效；表达式不在本阶段执行。"
+      },
+      "actions": [],
+      "priority": 0,
+      "timeout": null,
+      "description": "任务创建后进入等待分配。",
+      "transition_type": "NORMAL",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_WAITING_DISPATCHING",
+      "from_state": "S_WAITING",
+      "to_state": "S_DISPATCHING",
+      "trigger": "DISPATCH_EVENT",
+      "guard": null,
+      "actions": [],
+      "priority": 0,
+      "timeout": null,
+      "description": "进入调度阶段。",
+      "transition_type": "NORMAL",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_DISPATCHING_EXECUTING",
+      "from_state": "S_DISPATCHING",
+      "to_state": "S_EXECUTING",
+      "trigger": "DISPATCH_EVENT",
+      "guard": {
+        "expression": "robot_assigned",
+        "variables": {},
+        "description": "已绑定机器人；具体分配算法不在本阶段实现。"
+      },
+      "actions": [
+        {
+          "action_type": "bind_robot",
+          "parameters": {},
+          "description": "记录机器人绑定动作，不实际执行。"
+        }
+      ],
+      "priority": 0,
+      "timeout": null,
+      "description": "机器人分配成功，进入执行。",
+      "transition_type": "NORMAL",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_EXECUTING_COMPLETED",
+      "from_state": "S_EXECUTING",
+      "to_state": "S_COMPLETED",
+      "trigger": "BUSINESS_EVENT",
+      "guard": {
+        "expression": "all_steps_completed",
+        "variables": {},
+        "description": "所有标准步骤完成；表达式不在本阶段执行。"
+      },
+      "actions": [
+        {
+          "action_type": "release_resources",
+          "parameters": {},
+          "description": "释放机器人、工作站、点位及资源占用。"
+        }
+      ],
+      "priority": 0,
+      "timeout": null,
+      "description": "正常完成。",
+      "transition_type": "NORMAL",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_EXECUTING_FAILED",
+      "from_state": "S_EXECUTING",
+      "to_state": "S_FAILED",
+      "trigger": "EXCEPTION_EVENT",
+      "guard": {
+        "expression": "unrecoverable_exception",
+        "variables": {},
+        "description": "不可恢复异常；具体异常分类待确认。"
+      },
+      "actions": [],
+      "priority": 10,
+      "timeout": null,
+      "description": "执行中不可恢复异常导致失败。",
+      "transition_type": "EXCEPTION",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_WAITING_CANCELLED",
+      "from_state": "S_WAITING",
+      "to_state": "S_CANCELLED",
+      "trigger": "CANCEL_REQUEST",
+      "guard": null,
+      "actions": [
+        {
+          "action_type": "release_reserved_objects",
+          "parameters": {},
+          "description": "释放预占对象；是否存在预占资源待确认。"
+        }
+      ],
+      "priority": 10,
+      "timeout": null,
+      "description": "等待分配阶段取消。",
+      "transition_type": "CANCELLATION",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_EXECUTING_BLOCKED",
+      "from_state": "S_EXECUTING",
+      "to_state": "S_BLOCKED",
+      "trigger": "EXCEPTION_EVENT",
+      "guard": {
+        "expression": "temporary_blocked",
+        "variables": {},
+        "description": "临时阻塞，如点位、资源、工作站或交通条件不满足。"
+      },
+      "actions": [],
+      "priority": 5,
+      "timeout": null,
+      "description": "执行中进入阻塞。",
+      "transition_type": "EXCEPTION",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_BLOCKED_EXECUTING",
+      "from_state": "S_BLOCKED",
+      "to_state": "S_EXECUTING",
+      "trigger": "BUSINESS_EVENT",
+      "guard": {
+        "expression": "blocked_condition_resolved",
+        "variables": {},
+        "description": "阻塞条件解除。"
+      },
+      "actions": [],
+      "priority": 0,
+      "timeout": null,
+      "description": "阻塞解除后恢复执行。",
+      "transition_type": "RESUME",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    },
+    {
+      "id": "T_BLOCKED_FAILED",
+      "from_state": "S_BLOCKED",
+      "to_state": "S_FAILED",
+      "trigger": "TIMEOUT",
+      "guard": {
+        "expression": "blocked_timeout_reached",
+        "variables": {},
+        "description": "阻塞超时；具体阈值待确认。"
+      },
+      "actions": [],
+      "priority": 10,
+      "timeout": 600,
+      "description": "阻塞超时进入失败。",
+      "transition_type": "TIMEOUT",
+      "allow_self_loop": false,
+      "allow_from_terminal": false
+    }
+  ]
+}

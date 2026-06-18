@@ -1,6 +1,6 @@
-"""generate 环节：场景模型 → 规则配置。
+"""generate 环节：场景模型 → 任务流 → 规则配置。
 
-优先走 GenerateAgent；agent 不可用时回退到确定性基线生成器，
+优先走任务流生成 Agent + 规则生成 Agent；agent 不可用时回退到确定性基线生成器，
 以保证 `--from-json` 全确定性路径端到端可跑通。
 """
 
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from irms.context import RunContext
 from irms.models.rules import Rule, RuleConfig, StateMachine, Transition
-from irms.models.scenario import ScenarioModel
+from irms.models.scenario import FlowType, ScenarioModel
 from irms.stages.base import StageResult
 from irms.tools.schema_validator import validate
 
@@ -16,7 +16,12 @@ from irms.tools.schema_validator import validate
 def _baseline_config(scenario: ScenarioModel) -> RuleConfig:
     """从场景模型确定性地推导一个基线状态机与规则配置。"""
     # 由任务流程步骤推导状态：created -> <每个流程步骤> -> completed
-    flow_states = [step.name for step in scenario.task_flow]
+    primary_flow = scenario.task_flows[0] if scenario.task_flows else None
+    normal_steps = [
+        step for step in (primary_flow.steps if primary_flow else [])
+        if step.flow_type == FlowType.NORMAL
+    ]
+    flow_states = [step.step_name for step in normal_steps]
     states = ["created", *flow_states, "completed", "cancelled"]
     # 去重保序
     seen: set[str] = set()
@@ -38,25 +43,36 @@ def _baseline_config(scenario: ScenarioModel) -> RuleConfig:
 
     # 异常分支：每个异常从其触发状态（默认主链路首个流程态）流向 cancelled
     exception_rules: list[Rule] = []
-    for i, exc in enumerate(scenario.exceptions):
+    for i, exc in enumerate(scenario.exception_branches):
         transitions.append(
             Transition.model_validate(
                 {"from": main_chain[min(1, len(main_chain) - 1)], "to": "cancelled",
-                 "trigger": exc.trigger or exc.name, "guard": None}
+                 "trigger": exc.trigger or exc.exception_id, "guard": "exception"}
             )
         )
         exception_rules.append(
-            Rule(id=f"exc_{i}", description=exc.name,
-                 condition=exc.trigger or exc.name, action=exc.handling or "cancel_task")
+            Rule(id=f"exc_{i}", description=exc.typical_exception,
+                 condition=exc.trigger, action=",".join(a.value for a in exc.default_handling))
         )
 
+    cancel_action = "release_resources"
+    if scenario.cancellation_policy and scenario.cancellation_policy.rules:
+        cancel_action = scenario.cancellation_policy.rules[0].handling_principle
     cancellation_rules = [
         Rule(id="cancel_0", description="任务取消",
-             condition="cancel_requested", action=scenario.cancellation.handling)
+             condition="cancel_requested", action=cancel_action)
     ]
-    battery_rules = [
-        Rule(id="bat_0", description="低电回充",
-             condition=f"battery<{scenario.battery.low_threshold}", action="go_charge")
+    battery_rules: list[Rule] = []
+    if scenario.battery_policy and scenario.battery_policy.low_battery_percent is not None:
+        battery_rules.append(
+            Rule(id="bat_0", description="低电回充",
+                 condition=f"battery<{scenario.battery_policy.low_battery_percent}",
+                 action=(scenario.battery_policy.low_battery_action.value
+                         if scenario.battery_policy.low_battery_action else "触发充电"))
+        )
+    priority_rules = [
+        Rule(id="priority_0", description="优先级排序",
+             condition="priority is set", action="dispatch_by_priority")
     ]
 
     return RuleConfig(
@@ -67,6 +83,7 @@ def _baseline_config(scenario: ScenarioModel) -> RuleConfig:
         battery_rules=battery_rules,
         exception_rules=exception_rules,
         cancellation_rules=cancellation_rules,
+        priority_rules=priority_rules,
     )
 
 
@@ -80,10 +97,12 @@ class GenerateStage:
             data = ctx.read_json(ctx.artifact(self.input_artifact))
             scenario = validate(ScenarioModel, data)
             try:
-                from irms.agents.generate_agent import generate_config
+                from irms.agents.rule_agent import generate_rules
+                from irms.agents.task_flow_agent import generate_task_flow
 
-                config = generate_config(scenario)
-                meta = {"source": "agent"}
+                state_machine, transitions = generate_task_flow(scenario)
+                config = generate_rules(scenario, state_machine, transitions)
+                meta = {"source": "agents", "agents": ["task_flow", "rule"]}
             except Exception:
                 # agent 不可用：确定性基线生成
                 config = _baseline_config(scenario)

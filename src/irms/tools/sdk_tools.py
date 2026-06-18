@@ -64,7 +64,7 @@ async def check_rule_conflict(args: dict[str, Any]) -> dict[str, Any]:
         return {"content": [{"type": "text", "text": f"解析失败: {e}"}], "is_error": True}
     all_rules = (
         config.robot_dispatch_rules + config.workstation_rules + config.battery_rules
-        + config.exception_rules + config.cancellation_rules
+        + config.exception_rules + config.cancellation_rules + config.priority_rules
     )
     return _text({"conflicts": find_conflicts(all_rules)})
 

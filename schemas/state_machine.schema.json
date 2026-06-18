@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StateMachine",
+  "type": "object",
+  "required": ["id", "name", "states", "transitions", "initial_state_id"],
+  "properties": {
+    "id": { "type": "string", "description": "状态机唯一标识。" },
+    "name": { "type": "string", "description": "状态机名称。" },
+    "description": { "type": ["string", "null"], "description": "状态机说明，待确认。" },
+    "states": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/State" }
+    },
+    "transitions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Transition" }
+    },
+    "initial_state_id": { "type": "string", "description": "初始状态 ID，必须引用唯一 INITIAL 状态。" },
+    "version": { "type": ["string", "null"], "description": "状态机版本，待确认。" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "扩展元数据，未明确内容应标记待确认。"
+    },
+    "task_type_id": {
+      "type": ["string", "null"],
+      "description": "关联上一阶段 TaskType.task_type_id，待确认。"
+    },
+    "task_flow_id": {
+      "type": ["string", "null"],
+      "description": "关联上一阶段 TaskFlow.flow_id，待确认。"
+    }
+  },
+  "$defs": {
+    "StateType": {
+      "type": "string",
+      "enum": ["INITIAL", "WAITING", "DISPATCHING", "EXECUTING", "BLOCKED", "SUSPENDED", "COMPLETED", "FAILED", "CANCELLED"]
+    },
+    "TransitionType": {
+      "type": "string",
+      "enum": ["NORMAL", "EXCEPTION", "CANCELLATION", "TIMEOUT", "SUSPEND", "RESUME", "RECOVERY"]
+    },
+    "TriggerType": {
+      "type": "string",
+      "enum": ["BUSINESS_EVENT", "DISPATCH_EVENT", "EXCEPTION_EVENT", "CANCEL_REQUEST", "TIMEOUT", "SUSPEND_REQUEST", "RESUME_REQUEST", "MANUAL_CONFIRMATION"]
+    },
+    "Action": {
+      "type": "object",
+      "required": ["action_type"],
+      "properties": {
+        "action_type": { "type": "string", "description": "动作类型或动作编码，正式编码待确认。" },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "动作参数，仅结构化保存，不执行。"
+        },
+        "description": { "type": ["string", "null"], "description": "动作说明，待确认。" }
+      }
+    },
+    "Guard": {
+      "type": "object",
+      "required": ["expression"],
+      "properties": {
+        "expression": { "type": "string", "description": "守卫条件表达式，表达式语言待确认，本阶段不执行。" },
+        "variables": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "表达式涉及变量，仅结构化保存。"
+        },
+        "description": { "type": ["string", "null"], "description": "条件说明，待确认。" }
+      }
+    },
+    "State": {
+      "type": "object",
+      "required": ["id", "name", "state_type"],
+      "properties": {
+        "id": { "type": "string", "description": "状态唯一标识。" },
+        "name": { "type": "string", "description": "状态名称。" },
+        "state_type": { "$ref": "#/$defs/StateType" },
+        "description": { "type": ["string", "null"], "description": "状态业务说明，待确认。" },
+        "terminal": { "type": "boolean", "default": false, "description": "是否为终止状态。" },
+        "timeout": {
+          "type": ["integer", "null"],
+          "exclusiveMinimum": 0,
+          "description": "进入该状态后允许停留的最大时长，单位：秒；未明确则为空。"
+        },
+        "entry_actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Action" },
+          "description": "进入状态时的动作描述，不执行。"
+        },
+        "exit_actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Action" },
+          "description": "离开状态时的动作描述，不执行。"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "扩展元数据，未明确内容写入此处前应标记待确认。"
+        }
+      }
+    },
+    "Transition": {
+      "type": "object",
+      "required": ["id", "from_state", "to_state", "trigger"],
+      "properties": {
+        "id": { "type": "string", "description": "流转唯一标识。" },
+        "from_state": { "type": "string", "description": "来源状态 ID。" },
+        "to_state": { "type": "string", "description": "目标状态 ID。" },
+        "trigger": { "$ref": "#/$defs/TriggerType" },
+        "guard": {
+          "anyOf": [{ "$ref": "#/$defs/Guard" }, { "type": "null" }],
+          "description": "流转守卫条件，表达式语言待确认，本阶段不执行。"
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Action" },
+          "description": "流转动作描述，不执行。"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "流转优先级，非负整数。"
+        },
+        "timeout": {
+          "type": ["integer", "null"],
+          "exclusiveMinimum": 0,
+          "description": "触发流转前的等待或判定时限，单位：秒；未明确则为空。"
+        },
+        "description": { "type": ["string", "null"], "description": "流转业务说明，待确认。" },
+        "transition_type": { "$ref": "#/$defs/TransitionType" },
+        "allow_self_loop": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否显式允许自循环。"
+        },
+        "allow_from_terminal": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否显式允许从终止状态恢复；默认不允许。"
+        }
+      }
+    }
+  }
+}

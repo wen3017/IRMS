@@ -37,3 +37,4 @@ class RuleConfig(BaseModel):
     battery_rules: list[Rule] = Field(default_factory=list)
     exception_rules: list[Rule] = Field(default_factory=list)
     cancellation_rules: list[Rule] = Field(default_factory=list)
+    priority_rules: list[Rule] = Field(default_factory=list)

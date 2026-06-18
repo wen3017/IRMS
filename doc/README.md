@@ -70,8 +70,8 @@ uv run irms sandbox  examples/shelf_to_person.json # 沙箱模拟 -> 05_trace.js
 |---|---|---|
 | ingest | agent | 自然语言文档 → 结构化场景模型（`--from-json` 时跳过） |
 | model | 确定性 | 二次校验并标准化场景模型 |
-| generate | agent + 工具 | 生成规则配置，并调用 irms 工具自检 schema/可达性/冲突，多轮修正 |
-| review | agent | 汇总确定性检查结果为审查报告（无凭证时回退确定性拼接） |
+| generate | 双 agent + 工具 | 任务流生成 Agent 生成状态机/流转；规则生成 Agent 生成机器人、工作站、电量、异常、取消、优先级等规则 |
+| review | 规则审查 agent + 工具 | 调用确定性审查工具，汇总错误、风险、建议和人工确认点（无凭证时回退确定性拼接） |
 | sandbox | 确定性 | 状态机离散事件模拟，输出执行 trace |
 
 支持断点续跑：成功的环节会记录在 `progress.json`，再次 `run` 时自动跳过；
@@ -80,11 +80,18 @@ uv run irms sandbox  examples/shelf_to_person.json # 沙箱模拟 -> 05_trace.js
 ### Agent 工具能力
 
 确定性校验逻辑通过 in-process MCP server 注册为 agent 可调用工具
-（工具名 `mcp__irms__*`），目前 `generate` 环节会调用：
+（工具名 `mcp__irms__*`），目前任务流生成、规则生成和规则审查会使用：
 
 - `mcp__irms__validate_rule_config`：校验 RuleConfig schema
 - `mcp__irms__check_reachability`：检查状态机可达性（终态可达、不可达/死状态）
 - `mcp__irms__check_rule_conflict`：检测规则互斥
+
+当前设计包含 4 个业务 Agent：
+
+- `ScenarioParsingAgent`：场景解析，输出标准场景模型
+- `TaskFlowGenerationAgent`：生成任务状态机和正常/异常/取消流
+- `RuleGenerationAgent`：生成结构化规则配置
+- `RuleReviewAgent`：审查规则并输出风险、建议和人工确认说明
 
 ## 测试
 

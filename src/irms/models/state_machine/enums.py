@@ -1,0 +1,49 @@
+"""状态机枚举定义。"""
+
+from __future__ import annotations
+
+from enum import Enum
+
+
+class _StrEnum(str, Enum):
+    """JSON Schema 中稳定输出字符串枚举。"""
+
+
+class StateType(_StrEnum):
+    INITIAL = "INITIAL"
+    WAITING = "WAITING"
+    DISPATCHING = "DISPATCHING"
+    EXECUTING = "EXECUTING"
+    BLOCKED = "BLOCKED"
+    SUSPENDED = "SUSPENDED"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class TransitionType(_StrEnum):
+    NORMAL = "NORMAL"
+    EXCEPTION = "EXCEPTION"
+    CANCELLATION = "CANCELLATION"
+    TIMEOUT = "TIMEOUT"
+    SUSPEND = "SUSPEND"
+    RESUME = "RESUME"
+    RECOVERY = "RECOVERY"
+
+
+class TriggerType(_StrEnum):
+    BUSINESS_EVENT = "BUSINESS_EVENT"
+    DISPATCH_EVENT = "DISPATCH_EVENT"
+    EXCEPTION_EVENT = "EXCEPTION_EVENT"
+    CANCEL_REQUEST = "CANCEL_REQUEST"
+    TIMEOUT = "TIMEOUT"
+    SUSPEND_REQUEST = "SUSPEND_REQUEST"
+    RESUME_REQUEST = "RESUME_REQUEST"
+    MANUAL_CONFIRMATION = "MANUAL_CONFIRMATION"
+
+
+TERMINAL_STATE_TYPES = {
+    StateType.COMPLETED,
+    StateType.FAILED,
+    StateType.CANCELLED,
+}

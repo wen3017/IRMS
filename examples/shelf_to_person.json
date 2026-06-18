@@ -1,31 +1,317 @@
 {
-  "scenario_type": "货架到人",
-  "robots": [
+  "basic_info": {
+    "scene_id": "SCENE-S2P-001",
+    "scene_name": "货架到人最小场景",
+    "scene_type": "货架到人",
+    "description": "机器人搬运货架到拣选站，完成拣选后结束任务。",
+    "version": null,
+    "enabled": null,
+    "status": "草稿"
+  },
+  "robot_types": [
     {
-      "type": "货架搬运机器人",
-      "capabilities": ["lift_shelf", "carry_shelf"],
-      "low_battery_threshold": 20.0,
-      "full_battery_threshold": 90.0
+      "robot_type_id": "RT-SHELF-AMR",
+      "type_name": "货架搬运机器人",
+      "capability_codes": ["搬运货架", "顶升"],
+      "supported_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "supported_resource_types": ["货架"],
+      "max_load": null,
+      "size": null,
+      "speed_limit": null,
+      "battery_capacity": null,
+      "charge_compatibility": null,
+      "allowed_area_types": ["存储", "工作站"],
+      "docking_modes": null,
+      "status": "启用"
+    }
+  ],
+  "task_types": [
+    {
+      "task_type_id": "TT-SHELF-TO-PERSON",
+      "task_type_name": "货架到人任务",
+      "business_category": "货架到人",
+      "required_capabilities": ["搬运货架", "顶升"],
+      "allowed_robot_type_ids": ["RT-SHELF-AMR"],
+      "source_object_type": "点位",
+      "target_object_type": "工作站",
+      "resource_type": "货架",
+      "standard_flow_id": "FLOW-SHELF-TO-PERSON",
+      "source_location_ids": ["LOC-A1"],
+      "target_location_ids": ["LOC-WS1"],
+      "workstation_ids": ["WS-01"],
+      "cancel_policy_id": "CANCEL-POLICY-001",
+      "exception_branch_ids": ["EXC-PICK-FAILED", "EXC-ROBOT-OFFLINE"],
+      "default_priority": null,
+      "timeout_seconds": null,
+      "status": "启用"
     }
   ],
   "workstations": [
-    { "id": "WS-01", "type": "拣选站", "constraints": ["max_concurrent_tasks=1"] }
-  ],
-  "task_flow": [
-    { "name": "取货", "description": "机器人前往货架点位顶起货架" },
-    { "name": "搬运", "description": "机器人将货架搬运至拣选站" },
-    { "name": "拣选", "description": "拣选员在工作站完成拣选" },
-    { "name": "归位", "description": "机器人将货架搬回原点位" }
+    {
+      "station_id": "WS-01",
+      "station_name": "拣选站 01",
+      "station_type": "拣选",
+      "capability_codes": ["搬运货架"],
+      "point_ids": ["LOC-WS1"],
+      "capacity": 1,
+      "queue_capacity": null,
+      "supported_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "supported_resource_types": ["货架"],
+      "operating_status": "空闲",
+      "opening_hours": null,
+      "processing_time_seconds": null,
+      "current_load": null
+    }
   ],
   "locations": [
-    { "id": "LOC-A1", "area": "存储区", "constraints": [] },
-    { "id": "LOC-WS1", "area": "拣选区", "constraints": [] }
+    {
+      "location_id": "AREA-STORAGE",
+      "location_name": "存储区",
+      "location_kind": "区域",
+      "point_type": null,
+      "area_type": "存储",
+      "coordinate": null,
+      "area_id": null,
+      "point_ids": ["LOC-A1"],
+      "enabled": null,
+      "occupancy_status": "开放",
+      "max_occupancy": null,
+      "allowed_robot_type_ids": ["RT-SHELF-AMR"],
+      "allowed_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "bound_resource_id": null,
+      "direction_constraint": null,
+      "capacity": null,
+      "speed_limit": null,
+      "access_policy": "允许货架搬运机器人进入"
+    },
+    {
+      "location_id": "AREA-PICKING",
+      "location_name": "拣选区",
+      "location_kind": "区域",
+      "point_type": null,
+      "area_type": "工作站",
+      "coordinate": null,
+      "area_id": null,
+      "point_ids": ["LOC-WS1"],
+      "enabled": null,
+      "occupancy_status": "开放",
+      "max_occupancy": null,
+      "allowed_robot_type_ids": ["RT-SHELF-AMR"],
+      "allowed_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "bound_resource_id": null,
+      "direction_constraint": null,
+      "capacity": null,
+      "speed_limit": null,
+      "access_policy": "允许货架搬运机器人进入"
+    },
+    {
+      "location_id": "LOC-A1",
+      "location_name": "货架位 A1",
+      "location_kind": "点位",
+      "point_type": "货架",
+      "area_type": null,
+      "coordinate": null,
+      "area_id": "AREA-STORAGE",
+      "point_ids": [],
+      "enabled": null,
+      "occupancy_status": "可用",
+      "max_occupancy": 1,
+      "allowed_robot_type_ids": ["RT-SHELF-AMR"],
+      "allowed_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "bound_resource_id": "RES-SHELF-001",
+      "direction_constraint": null,
+      "capacity": null,
+      "speed_limit": null,
+      "access_policy": null
+    },
+    {
+      "location_id": "LOC-WS1",
+      "location_name": "拣选站对接点",
+      "location_kind": "点位",
+      "point_type": "工作站",
+      "area_type": null,
+      "coordinate": null,
+      "area_id": "AREA-PICKING",
+      "point_ids": [],
+      "enabled": null,
+      "occupancy_status": "可用",
+      "max_occupancy": 1,
+      "allowed_robot_type_ids": ["RT-SHELF-AMR"],
+      "allowed_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "bound_resource_id": null,
+      "direction_constraint": null,
+      "capacity": null,
+      "speed_limit": null,
+      "access_policy": null
+    }
   ],
-  "battery": { "low_threshold": 20.0, "charge_trigger": "low_battery" },
-  "exceptions": [
-    { "name": "取货失败", "trigger": "pick_failed", "handling": "release_and_cancel" },
-    { "name": "机器人离线", "trigger": "robot_offline", "handling": "reassign_or_cancel" }
+  "resources": [
+    {
+      "resource_id": "RES-SHELF-001",
+      "resource_type": "货架",
+      "resource_subtype": null,
+      "current_location_type": "点位",
+      "current_location_id": "LOC-A1",
+      "storage_capacity": null,
+      "load_weight": null,
+      "movable": null,
+      "compatible_robot_type_ids": ["RT-SHELF-AMR"],
+      "occupancy_status": "可用",
+      "carried_by_robot_id": null,
+      "bound_task_id": null,
+      "charging_power": null,
+      "occupied_robot_id": null,
+      "reservation_task_id": null,
+      "queue_capacity": null
+    }
   ],
-  "cancellation": { "allowed_states": ["created", "取货", "搬运"], "handling": "release_resources" },
-  "priority": { "levels": ["low", "normal", "high"], "preemption": false }
+  "task_flows": [
+    {
+      "flow_id": "FLOW-SHELF-TO-PERSON",
+      "task_type_id": "TT-SHELF-TO-PERSON",
+      "steps": [
+        {
+          "step_id": "STEP-PICKUP",
+          "step_name": "前往起点并取货",
+          "from_state": "待分配",
+          "to_state": "执行中",
+          "flow_type": "正常流",
+          "entry_condition": "机器人已分配且起点资源有效",
+          "action": "前往货架点位并顶升货架",
+          "success_condition": "资源与机器人绑定",
+          "failure_branch_ids": ["EXC-PICK-FAILED"],
+          "workstation_ids": [],
+          "location_ids": ["LOC-A1"]
+        },
+        {
+          "step_id": "STEP-DELIVER",
+          "step_name": "搬运至拣选站",
+          "from_state": "执行中",
+          "to_state": "执行中",
+          "flow_type": "正常流",
+          "entry_condition": "起点作业完成",
+          "action": "搬运货架到拣选站",
+          "success_condition": "到达拣选站对接点",
+          "failure_branch_ids": ["EXC-ROBOT-OFFLINE"],
+          "workstation_ids": ["WS-01"],
+          "location_ids": ["LOC-WS1"]
+        },
+        {
+          "step_id": "STEP-COMPLETE",
+          "step_name": "完成拣选并释放资源",
+          "from_state": "执行中",
+          "to_state": "已完成",
+          "flow_type": "正常流",
+          "entry_condition": "工作站完成拣选",
+          "action": "释放机器人、工作站、点位及资源占用",
+          "success_condition": "任务完成",
+          "failure_branch_ids": [],
+          "workstation_ids": ["WS-01"],
+          "location_ids": ["LOC-WS1"]
+        }
+      ]
+    }
+  ],
+  "dispatch_constraints": [
+    {
+      "constraint_id": "CONSTRAINT-CAPABILITY",
+      "constraint_type": "能力约束",
+      "description": "机器人类型必须满足任务所需能力。",
+      "applies_to_task_type_ids": ["TT-SHELF-TO-PERSON"],
+      "applies_to_robot_type_ids": ["RT-SHELF-AMR"],
+      "condition": "required_capabilities subset robot.capability_codes",
+      "enabled": null
+    }
+  ],
+  "battery_policy": {
+    "policy_id": "BATTERY-POLICY-001",
+    "task_accept_min_percent": null,
+    "low_battery_percent": null,
+    "emergency_battery_percent": null,
+    "protective_battery_percent": null,
+    "stop_charging_percent": null,
+    "require_enough_power_to_charge": null,
+    "low_battery_action": null,
+    "battery_bands": ["正常电量", "低电量", "紧急电量"]
+  },
+  "priority_policy": {
+    "policy_id": "PRIORITY-POLICY-001",
+    "priority_min": null,
+    "priority_max": null,
+    "sources": ["任务类型默认优先级", "上游系统显式指定优先级", "人工调整"],
+    "allow_preemption": null,
+    "aging_enabled": null,
+    "same_priority_order": null
+  },
+  "cancellation_policy": {
+    "policy_id": "CANCEL-POLICY-001",
+    "cancellable_states": ["已创建", "待分配", "已分配"],
+    "rules": [
+      {
+        "stage": "已创建/待校验",
+        "handling_principle": "可直接取消，不涉及机器人和资源恢复",
+        "confirmation_required": true
+      },
+      {
+        "stage": "待分配",
+        "handling_principle": "从调度队列移除并释放预占资源",
+        "confirmation_required": true
+      }
+    ],
+    "require_source_reason_time": null,
+    "final_state": "已取消"
+  },
+  "exception_branches": [
+    {
+      "exception_id": "EXC-PICK-FAILED",
+      "exception_category": "机器人异常",
+      "typical_exception": "取货失败",
+      "trigger": "pick_failed",
+      "default_handling": ["重试", "取消", "转人工"],
+      "terminal_condition": null,
+      "max_retry_count": null,
+      "manual_required": null
+    },
+    {
+      "exception_id": "EXC-ROBOT-OFFLINE",
+      "exception_category": "机器人异常",
+      "typical_exception": "机器人离线",
+      "trigger": "robot_offline",
+      "default_handling": ["重新分配", "取消", "转人工"],
+      "terminal_condition": null,
+      "max_retry_count": null,
+      "manual_required": null
+    }
+  ],
+  "assumptions": [
+    {
+      "assumption_id": "ASSUMP-001",
+      "content": "本阶段只建模场景对象和校验，不实现调度算法、状态机执行器和规则引擎。",
+      "source": "1.2 阶段边界",
+      "risk": null
+    }
+  ],
+  "manual_confirmations": [
+    {
+      "confirmation_id": "MC-BATTERY-THRESHOLD",
+      "field_path": "battery_policy.*_percent",
+      "question": "低电量、紧急电量、保护电量和停止充电阈值分别是多少？",
+      "reason": "1.1 文档仅说明这些阈值待确认，不能自行填写默认业务值。",
+      "status": "待确认"
+    },
+    {
+      "confirmation_id": "MC-PRIORITY-RANGE",
+      "field_path": "priority_policy.priority_min/priority_max",
+      "question": "优先级的取值范围和比较方式是什么？",
+      "reason": "1.1 文档明确优先级范围和比较方式待确认。",
+      "status": "待确认"
+    },
+    {
+      "confirmation_id": "MC-CANCEL-CARRYING",
+      "field_path": "cancellation_policy.rules",
+      "question": "搬运中任务取消后，资源应返还起点、送至缓冲区还是继续到终点？",
+      "reason": "1.1 文档将搬运中取消后的资源去向标记为待确认。",
+      "status": "待确认"
+    }
+  ]
 }
